@@ -1,12 +1,3 @@
-/**
- * STEPS:
- * 1. create a requestController class and define the needed variables for the API call
- * 2. Create a method that will get the current (last added) comic and set the currentComicsNumber and
- *    maxComicsNumber accordingly, call that method on load
- * 3. Register an event for the random comic number and add all the chain of event to display it
- * 4. Add Previous/Next, First/Last and get Comic by ID functionality to the app
- * 5. Adjust UI states accordingly
- */
 
 class DOMInterface {
     constructor() {
@@ -71,4 +62,106 @@ class DOMInterface {
 
         this.hideLoader();
     }
-}
+};
+
+class requestController{
+    constructor() {
+        this.DOMInterface = new DOMInterface();
+        this.CORSHeader = "https://cors-anywhere.herokuapp.com";
+        this.apiURL = "https://xkcd.com";
+        this.apiURLFormat = "info.0.json";
+        this.superAgent = superagent;
+        this.currentComicsNumber = 0;
+        this.maxComicsNumber = 0;
+
+        this.getCurrentComics();
+        this.registerEvents()
+    };
+    
+    setMaxComicsNumber(number) {
+        this.maxComicsNumber = number
+    };
+
+    getRandomComicsNumber() {
+        const min = 1;
+        const max = this.maxComicsNumber;
+        const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+        return randomNumber;
+    };
+
+    setCurrentComicsNumber(number) {
+        this.currentComicsNumber = number
+    };
+
+    getCurrentComics() {
+        const requestURL = `${this.CORSHeader}/${this.apiURL}/${this.apiURLFormat}`;
+
+        this.superAgent.get(requestURL).end((err, res)=> {
+            if(err) {
+                return this.DOMInterface.showError(err);
+            }
+
+            const data = res.body;
+            this.DOMInterface.showComics(data);
+            this.setCurrentComicsNumber(data.num);
+            this.setMaxComicsNumber(data.num);
+        });
+    };
+
+    getComicsByNumber(number) {
+        this.DOMInterface.hideErrors();
+        this.DOMInterface.showLoader();
+        this.DOMInterface.clearResults();
+        const requestURL = `${this.CORSHeader}/${this.apiURL}/${number}/${this.apiURLFormat}`;
+
+        this.superAgent.get(requestURL).end((err,res)=>{
+            if(err) {
+                return this.DOMInterface.showError();
+            }
+            const data = res.body;
+            this.setCurrentComicsNumber(data.num);
+            this.DOMInterface.showComics(data);
+        });
+    };
+
+    requestPreviousComics() {
+        const requestComicsNumber = this.currentComicsNumber - 1;
+        if(requestComicsNumber < 1) return;
+
+        this.getComicsByNumber(requestComicsNumber);
+    };
+
+    requestNextComics() {
+        const requestComicsNumber = this.currentComicsNumber + 1;
+        if(requestComicsNumber > this.maxComicsNumber) return;
+        this.getComicsByNumber(requestComicsNumber);
+    };
+
+    requestComicsById(e) {
+        e.preventDefault();
+        
+        const query = this.DOMInterface.searchField.ariaValueMax;
+        if(!query || query === "") return;
+        if(query < 1 || query > this.maxComicsNumber) {
+            return this.DOMInterface.showFormError(`Try a number between 1 and ${this.maxComicsNumber}`);
+        }
+
+        this.getComicsByNumber(query);
+    }
+
+    registerEvents() {
+        this.DOMInterface.controls.random.addEventListener('click', () => {
+            this.getComicsByNumber(this.getRandomComicsNumber());
+        });
+
+        this.DOMInterface.controls.first.addEventListener('click', () =>  this.getComicsByNumber(1));
+        this.DOMInterface.controls.last.addEventListener("click", () => this.getComicsByNumber(this.maxComicsNumber));
+
+        this.DOMInterface.controls.previous.addEventListener("click", () => this.requestPreviousComics());
+        this.DOMInterface.controls.next.addEventListener('click', () => this.requestNextComics());
+
+        this.DOMInterface.form.addEventListener('submit', (e) => this.requestComicsById(e));
+    };
+};
+
+const comics = new requestController();
