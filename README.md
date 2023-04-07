@@ -1,0 +1,2 @@
+### XKCD COMICS DISPLAYER
+This web app displays comics from the xkcd api with a beautiful web page. This was made by following [the ultimate api challenge xkcd](https://github.com/danascript/the-ultimate-api-challenge-xkcd) and this [youtube video](https://www.youtube.com/watch?v=xrVvCl4DKi0&feature=youtu.be&ab_channel=danascript)
